@@ -27,6 +27,7 @@ class Game(ndb.Model):
     player2_ships_location = ndb.StringProperty(repeated=True)
     current_player = ndb.KeyProperty(kind='User')
     game_over = ndb.BooleanProperty(required=True, default=False)
+    cancelled = ndb.BooleanProperty(required=True, default=False)
 
     @classmethod
     def new_game(cls, user1, user2,
@@ -41,7 +42,8 @@ class Game(ndb.Model):
                     player1_ships_location=player1_ships_location,
                     player2_ships_location=player2_ships_location,
                     current_player=user1,
-                    game_over=False)
+                    game_over=False,
+                    cancelled=False)
         game.put()
         return game
 
@@ -63,6 +65,7 @@ class Game(ndb.Model):
         else:
             form.current_player = 'Computer'
         form.game_over = self.game_over
+        form.cancelled = self.cancelled
         form.message = message
         return form
 
@@ -103,6 +106,7 @@ class GameForm(messages.Message):
     player1_name = messages.StringField(8, required=True)
     player2_name = messages.StringField(9)
     current_player = messages.StringField(10)
+    cancelled = messages.BooleanField(11)
 
 
 class GameForms(messages.Message):

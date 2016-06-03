@@ -179,6 +179,26 @@ class BattleshipApi(remote.Service):
                                           Game.player2 == user.key)))
         return GameForms(items=[game.to_form('') for game in games])
 
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=GameForm,
+                      path='game',
+                      name='cancel_game',
+                      http_method='PUT')
+    def cancel_game(self, request):
+        """Cancel the game and return the current game state."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+            if game.game_over:
+                return game.to_form('Game already over!')
+            elif game.cancelled:
+                return game.to_form('Game already cancelled!')
+            else:
+                game.cancelled = True
+                game.put()
+                return game.to_form('Game Cancelled!')
+        else:
+            raise endpoints.NotFoundException('Game not found!')
+
     # @endpoints.method(response_message=StringMessage,
     #                   path='games/average_attempts',
     #                   name='get_average_attempts_remaining',
