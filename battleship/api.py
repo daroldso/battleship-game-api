@@ -14,8 +14,10 @@ from google.appengine.ext import ndb
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameForms
+    ScoreForms, GameForms, RankForm, RankForms
 from utils import get_by_urlsafe
+
+import operator
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
@@ -207,7 +209,7 @@ class BattleshipApi(remote.Service):
                       path='scores/highscore',
                       name='get_high_scores',
                       http_method='GET')
-    def get_scores(self, request):
+    def get_high_scores(self, request):
         """Return high scores sorting by their ships remaining"""
         scores = Score.query()
         scores = scores.order(-Score.ships_remaining)
@@ -216,6 +218,30 @@ class BattleshipApi(remote.Service):
         except:
             raise endpoints.BadRequestException('Please put in a positive number')
         return ScoreForms(items=[score.to_form() for score in scores])
+
+    @endpoints.method(response_message=RankForms,
+                      path='scores/ranking',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self, request):
+        """Returns the ranking of users"""
+        scores = Score.query()
+        scores_grouped_by_user = {}
+
+        for score in scores:
+            name = score.winner.get().name
+            scores_grouped_by_user[name] = score.ships_remaining
+
+        rankings = sorted(scores_grouped_by_user.items(), key=operator.itemgetter(1))
+        rankings.reverse()
+
+        def make_rank_form(score):
+            form = RankForm()
+            form.user = score[0]
+            form.score = score[1]
+            return form
+
+        return RankForms(items=[make_rank_form(score) for score in rankings])
 
     # @endpoints.method(response_message=StringMessage,
     #                   path='games/average_attempts',
