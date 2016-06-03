@@ -10,10 +10,11 @@ import endpoints
 from protorpc import remote, messages
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
+from google.appengine.ext import ndb
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms
+    ScoreForms, GameForms
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -161,6 +162,22 @@ class BattleshipApi(remote.Service):
                     'A User with that name does not exist!')
         scores = Score.query(Score.winner == user.key)
         return ScoreForms(items=[score.to_form() for score in scores])
+
+    @endpoints.method(request_message=USER_REQUEST,
+                      response_message=GameForms,
+                      path='game/user/{user_name}',
+                      name='get_user_games',
+                      http_method='GET')
+    def get_user_games(self, request):
+        """Returns all of a User's active games"""
+        user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                    'A User with that name does not exist!')
+        games = Game.query(ndb.AND(Game.game_over == False,
+                                   ndb.OR(Game.player1 == user.key,
+                                          Game.player2 == user.key)))
+        return GameForms(items=[game.to_form('') for game in games])
 
     # @endpoints.method(response_message=StringMessage,
     #                   path='games/average_attempts',

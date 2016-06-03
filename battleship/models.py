@@ -105,6 +105,11 @@ class GameForm(messages.Message):
     current_player = messages.StringField(10)
 
 
+class GameForms(messages.Message):
+    """Return multiple GameForms"""
+    items = messages.MessageField(GameForm, 1, repeated=True)
+
+
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     player1_name = messages.StringField(1, required=True)
