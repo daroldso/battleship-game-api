@@ -175,6 +175,7 @@ class BattleshipApi(remote.Service):
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
         games = Game.query(ndb.AND(Game.game_over == False,
+                                   Game.cancelled == False,
                                    ndb.OR(Game.player1 == user.key,
                                           Game.player2 == user.key)))
         return GameForms(items=[game.to_form('') for game in games])
