@@ -27,8 +27,8 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
 
 MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 
-@endpoints.api(name='guess_a_number', version='v1')
-class GuessANumberApi(remote.Service):
+@endpoints.api(name='battleship', version='v1')
+class BattleshipApi(remote.Service):
     """Game API"""
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
@@ -52,22 +52,24 @@ class GuessANumberApi(remote.Service):
                       http_method='POST')
     def new_game(self, request):
         """Creates new game"""
-        user = User.query(User.name == request.user_name).get()
-        if not user:
+        user1 = User.query(User.name == request.player1_name).get()
+        if not user1:
             raise endpoints.NotFoundException(
-                    'A User with that name does not exist!')
-        try:
-            game = Game.new_game(user.key, request.min,
-                                 request.max, request.attempts)
-        except ValueError:
-            raise endpoints.BadRequestException('Maximum must be greater '
-                                                'than minimum!')
+                    'User 1 does not exist!')
+        user2 = User.query(User.name == request.player2_name).get()
+        if not user2:
+            user2key = user2
+        else:
+            user2key = user2.key
+        game = Game.new_game(user1.key, user2key,
+                             request.player1_ships_location,
+                             request.player2_ships_location)
 
         # Use a task queue to update the average attempts remaining.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
-        taskqueue.add(url='/tasks/cache_average_attempts')
-        return game.to_form('Good luck playing Guess a Number!')
+        # taskqueue.add(url='/tasks/cache_average_attempts')
+        return game.to_form('Good luck playing Battleship!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
@@ -78,7 +80,10 @@ class GuessANumberApi(remote.Service):
         """Return the current game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            return game.to_form('Time to make a move!')
+            if game.game_over:
+                return game.to_form('Game already over!')
+            else:
+                return game.to_form('Time to make a move!')
         else:
             raise endpoints.NotFoundException('Game not found!')
 
@@ -93,22 +98,47 @@ class GuessANumberApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
 
-        game.attempts_remaining -= 1
-        if request.guess == game.target:
-            game.end_game(True)
-            return game.to_form('You win!')
+        if(request.is_player1_move):
+            # Remove the hit location
+            new_location = [coord for coord in game.player1_ships_location if request.move != coord]
+            game.player1_ships_location = new_location
 
-        if request.guess < game.target:
-            msg = 'Too low!'
-        else:
-            msg = 'Too high!'
+            if request.is_ship_destroyed:
+                game.player2_ships_remaining -= 1
 
-        if game.attempts_remaining < 1:
-            game.end_game(False)
-            return game.to_form(msg + ' Game over!')
+            current_player = game.player1
+            next_player = game.player2
         else:
+            if request.is_ship_destroyed:
+                game.player1_ships_remaining -= 1
+
+            new_location = [coord for coord in game.player2_ships_location if request.move != coord]
+            game.player2_ships_location = new_location
+            current_player = game.player2
+            next_player = game.player1
+
+        if current_player is not None:
+            current_player_name =  current_player.get().name
+        else:
+            current_player_name = 'Computer'
+
+        if next_player is not None:
+            next_player_name =  next_player.get().name
+        else:
+            next_player_name = 'Computer'
+
+        if game.player1_ships_remaining < 1 or game.player2_ships_remaining < 1:
+            if game.player1_ships_remaining < 1:
+                game.end_game(game.player2)
+                winner_name = game.player2.get().name
+            else:
+                game.end_game(game.player1)
+                winner_name = game.player1.get().name
+            return game.to_form('Game over! ' + winner_name + ' wins!')
+        else:
+            game.current_player = next_player
             game.put()
-            return game.to_form(msg)
+            return game.to_form(current_player_name + ' has moved. ' + next_player_name + '\'s turn')
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
@@ -129,28 +159,28 @@ class GuessANumberApi(remote.Service):
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
-        scores = Score.query(Score.user == user.key)
+        scores = Score.query(Score.winner == user.key)
         return ScoreForms(items=[score.to_form() for score in scores])
 
-    @endpoints.method(response_message=StringMessage,
-                      path='games/average_attempts',
-                      name='get_average_attempts_remaining',
-                      http_method='GET')
-    def get_average_attempts(self, request):
-        """Get the cached average moves remaining"""
-        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+    # @endpoints.method(response_message=StringMessage,
+    #                   path='games/average_attempts',
+    #                   name='get_average_attempts_remaining',
+    #                   http_method='GET')
+    # def get_average_attempts(self, request):
+    #     """Get the cached average moves remaining"""
+    #     return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
 
-    @staticmethod
-    def _cache_average_attempts():
-        """Populates memcache with the average moves remaining of Games"""
-        games = Game.query(Game.game_over == False).fetch()
-        if games:
-            count = len(games)
-            total_attempts_remaining = sum([game.attempts_remaining
-                                        for game in games])
-            average = float(total_attempts_remaining)/count
-            memcache.set(MEMCACHE_MOVES_REMAINING,
-                         'The average moves remaining is {:.2f}'.format(average))
+    # @staticmethod
+    # def _cache_average_attempts():
+    #     """Populates memcache with the average moves remaining of Games"""
+    #     games = Game.query(Game.game_over == False).fetch()
+    #     if games:
+    #         count = len(games)
+    #         total_attempts_remaining = sum([game.attempts_remaining
+    #                                     for game in games])
+    #         average = float(total_attempts_remaining)/count
+    #         memcache.set(MEMCACHE_MOVES_REMAINING,
+    #                      'The average moves remaining is {:.2f}'.format(average))
 
 
-api = endpoints.api_server([GuessANumberApi])
+api = endpoints.api_server([BattleshipApi])

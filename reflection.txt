@@ -1,0 +1,7 @@
+
+
+The position is determined in frontend when user place the ships in the grid and send back all the game data to api to initialize a new game
+
+Has to store ship location for the make_move api to determine whether this move is hit or miss.
+
+Think of a way to store the location
