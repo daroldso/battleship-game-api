@@ -25,6 +25,8 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+GET_HIGHSCORE_REQUEST = endpoints.ResourceContainer(
+        number_of_results=messages.IntegerField(1),)
 
 MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 
@@ -199,6 +201,21 @@ class BattleshipApi(remote.Service):
                 return game.to_form('Game Cancelled!')
         else:
             raise endpoints.NotFoundException('Game not found!')
+
+    @endpoints.method(request_message=GET_HIGHSCORE_REQUEST,
+                      response_message=ScoreForms,
+                      path='scores/highscore',
+                      name='get_high_scores',
+                      http_method='GET')
+    def get_scores(self, request):
+        """Return high scores sorting by their ships remaining"""
+        scores = Score.query()
+        scores = scores.order(-Score.ships_remaining)
+        try:
+            scores = scores.fetch(request.number_of_results)
+        except:
+            raise endpoints.BadRequestException('Please put in a positive number')
+        return ScoreForms(items=[score.to_form() for score in scores])
 
     # @endpoints.method(response_message=StringMessage,
     #                   path='games/average_attempts',
