@@ -14,7 +14,7 @@ from google.appengine.ext import ndb
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameForms, RankForm, RankForms
+    ScoreForms, GameForms, RankForm, RankForms, GameStepForm, GameStepForms
 from utils import get_by_urlsafe
 
 import operator
@@ -132,6 +132,14 @@ class BattleshipApi(remote.Service):
         else:
             next_player_name = 'Computer'
 
+        # Save move to history
+        move = GameStepForm()
+        move.player = current_player_name
+        move.move = request.move
+        move.is_ship_destroyed = request.is_ship_destroyed
+
+        game.history.append(move)
+
         if game.player1_ships_remaining < 1 or game.player2_ships_remaining < 1:
             if game.player1_ships_remaining < 1:
                 game.end_game(game.player2)
@@ -242,6 +250,19 @@ class BattleshipApi(remote.Service):
             return form
 
         return RankForms(items=[make_rank_form(score) for score in rankings])
+
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=GameStepForms,
+                      path='game/{urlsafe_game_key}/history',
+                      name='get_game_history',
+                      http_method='GET')
+    def get_game_history(self, request):
+        """Return the history of game"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+            return GameStepForms(items=[GameStepForm(player=step.player, move=step.move, is_ship_destroyed=step.is_ship_destroyed) for step in game.history])
+        else:
+            raise endpoints.NotFoundException('Game not found!')
 
     # @endpoints.method(response_message=StringMessage,
     #                   path='games/average_attempts',

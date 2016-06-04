@@ -28,6 +28,7 @@ class Game(ndb.Model):
     current_player = ndb.KeyProperty(kind='User')
     game_over = ndb.BooleanProperty(required=True, default=False)
     cancelled = ndb.BooleanProperty(required=True, default=False)
+    history = ndb.PickleProperty(repeated=True)
 
     @classmethod
     def new_game(cls, user1, user2,
@@ -43,7 +44,8 @@ class Game(ndb.Model):
                     player2_ships_location=player2_ships_location,
                     current_player=user1,
                     game_over=False,
-                    cancelled=False)
+                    cancelled=False,
+                    history=[])
         game.put()
         return game
 
@@ -94,6 +96,18 @@ class Score(ndb.Model):
                          date=str(self.date), ships_remaining=self.ships_remaining)
 
 
+class GameStepForm(messages.Message):
+    """GameStepForm for outbound game history"""
+    player = messages.StringField(1, required=True)
+    move = messages.StringField(2, required=True)
+    is_ship_destroyed = messages.BooleanField(3, required=True)
+
+
+class GameStepForms(messages.Message):
+    """Return multiple GameStepForms"""
+    items = messages.MessageField(GameStepForm, 1, repeated=True)
+
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
@@ -107,6 +121,7 @@ class GameForm(messages.Message):
     player2_name = messages.StringField(9)
     current_player = messages.StringField(10)
     cancelled = messages.BooleanField(11)
+    history = messages.MessageField(GameStepForm, 12, repeated=True)
 
 
 class GameForms(messages.Message):
