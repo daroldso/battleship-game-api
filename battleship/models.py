@@ -166,11 +166,6 @@ class ScoreForms(messages.Message):
     items = messages.MessageField(ScoreForm, 1, repeated=True)
 
 
-class StringMessage(messages.Message):
-    """StringMessage-- outbound (single) string message"""
-    message = messages.StringField(1, required=True)
-
-
 class RankForm(messages.Message):
     """RankForm for outbound Rank information"""
     user = messages.StringField(1, required=True)
@@ -180,3 +175,8 @@ class RankForm(messages.Message):
 class RankForms(messages.Message):
     """Return multiple RankForms"""
     items = messages.MessageField(RankForm, 1, repeated=True)
+
+
+class StringMessage(messages.Message):
+    """StringMessage-- outbound (single) string message"""
+    message = messages.StringField(1, required=True)

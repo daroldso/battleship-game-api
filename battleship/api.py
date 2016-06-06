@@ -71,10 +71,6 @@ class BattleshipApi(remote.Service):
                              request.player1_ships_location,
                              request.player2_ships_location)
 
-        # Use a task queue to update the average attempts remaining.
-        # This operation is not needed to complete the creation of a new game
-        # so it is performed out of sequence.
-        # taskqueue.add(url='/tasks/cache_average_attempts')
         return game.to_form('Good luck playing Battleship!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
@@ -92,34 +88,6 @@ class BattleshipApi(remote.Service):
                 return game.to_form('Time to make a move!')
         else:
             raise endpoints.NotFoundException('Game not found!')
-
-    def _is_correct_player(self, game, is_player1_move):
-        if is_player1_move:
-            return game.current_player == game.player1
-        else:
-            return game.current_player == game.player2
-
-    def _set_new_ships_locations(self, game, move, is_player1_move):
-        if is_player1_move:
-            new_location = [
-                coord for coord in game.player2_ships_location if move != coord
-            ]
-            game.player2_ships_location = new_location
-        else:
-            new_location = [
-                coord for coord in game.player1_ships_location if move != coord
-            ]
-            game.player1_ships_location = new_location
-
-    def _set_new_ships_remaining(self,
-                                 game,
-                                 is_ship_destroyed,
-                                 is_player1_move):
-        if is_ship_destroyed:
-            if is_player1_move:
-                game.player2_ships_remaining -= 1
-            else:
-                game.player1_ships_remaining -= 1
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
@@ -259,7 +227,7 @@ class BattleshipApi(remote.Service):
                       name='get_high_scores',
                       http_method='GET')
     def get_high_scores(self, request):
-        """Return high scores sorting by their ships remaining"""
+        """Return all scores sorted by their ships remaining"""
         scores = Score.query()
         scores = scores.order(-Score.ships_remaining)
         try:
@@ -313,6 +281,35 @@ class BattleshipApi(remote.Service):
                                  for step in game.history])
         else:
             raise endpoints.NotFoundException('Game not found!')
+
+    # Instance methods
+    def _is_correct_player(self, game, is_player1_move):
+        if is_player1_move:
+            return game.current_player == game.player1
+        else:
+            return game.current_player == game.player2
+
+    def _set_new_ships_locations(self, game, move, is_player1_move):
+        if is_player1_move:
+            new_location = [
+                coord for coord in game.player2_ships_location if move != coord
+            ]
+            game.player2_ships_location = new_location
+        else:
+            new_location = [
+                coord for coord in game.player1_ships_location if move != coord
+            ]
+            game.player1_ships_location = new_location
+
+    def _set_new_ships_remaining(self,
+                                 game,
+                                 is_ship_destroyed,
+                                 is_player1_move):
+        if is_ship_destroyed:
+            if is_player1_move:
+                game.player2_ships_remaining -= 1
+            else:
+                game.player1_ships_remaining -= 1
 
     @staticmethod
     def _get_inactive_games():
