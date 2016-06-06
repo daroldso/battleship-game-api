@@ -18,9 +18,9 @@ class SendReminderEmail(webapp2.RequestHandler):
         Called every hour using a cron job"""
         app_id = app_identity.get_application_id()
         inactive_games = BattleshipApi._get_inactive_games()
-        
+
         for inactive_game in inactive_games:
-            if inactive_game.current_player != None:
+            if inactive_game.current_player is not None:
                 user = inactive_game.current_player.get()
                 if inactive_game.player1.get().name == user.name:
                     another_user_name = inactive_game.player2.get().name
@@ -46,7 +46,7 @@ class SendNoticationEmailToOpponent(webapp2.RequestHandler):
                        user.email,
                        subject,
                        body)
-        
+
 
 app = webapp2.WSGIApplication([
     ('/crons/send_reminder', SendReminderEmail),

@@ -22,19 +22,19 @@ import operator
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
-        urlsafe_game_key=messages.StringField(1),)
+    urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     MakeMoveForm,
     urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 GET_HIGHSCORE_REQUEST = endpoints.ResourceContainer(
-        number_of_results=messages.IntegerField(1),)
+    number_of_results=messages.IntegerField(1),)
 
-MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 
 @endpoints.api(name='battleship', version='v1')
 class BattleshipApi(remote.Service):
+
     """Game API"""
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
@@ -45,11 +45,11 @@ class BattleshipApi(remote.Service):
         """Create a User. Requires a unique username"""
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
-                    'A User with that name already exists!')
+                'A User with that name already exists!')
         user = User(name=request.user_name, email=request.email)
         user.put()
         return StringMessage(message='User {} created!'.format(
-                request.user_name))
+            request.user_name))
 
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
@@ -61,7 +61,7 @@ class BattleshipApi(remote.Service):
         user1 = User.query(User.name == request.player1_name).get()
         if not user1:
             raise endpoints.NotFoundException(
-                    'User 1 does not exist!')
+                'User 1 does not exist!')
         user2 = User.query(User.name == request.player2_name).get()
         if not user2:
             user2key = user2
@@ -93,7 +93,7 @@ class BattleshipApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
-    def _is_correct_player_moving(self, game, is_player1_move):
+    def _is_correct_player(self, game, is_player1_move):
         if is_player1_move:
             return game.current_player == game.player1
         else:
@@ -101,19 +101,26 @@ class BattleshipApi(remote.Service):
 
     def _set_new_ships_locations(self, game, move, is_player1_move):
         if is_player1_move:
-            new_location = [coord for coord in game.player2_ships_location if move != coord]
+            new_location = [
+                coord for coord in game.player2_ships_location if move != coord
+            ]
             game.player2_ships_location = new_location
         else:
-            new_location = [coord for coord in game.player1_ships_location if move != coord]
+            new_location = [
+                coord for coord in game.player1_ships_location if move != coord
+            ]
             game.player1_ships_location = new_location
 
-    def _set_new_ships_remaining(self, game, is_ship_destroyed, is_player1_move):
+    def _set_new_ships_remaining(self,
+                                 game,
+                                 is_ship_destroyed,
+                                 is_player1_move):
         if is_ship_destroyed:
             if is_player1_move:
                 game.player2_ships_remaining -= 1
             else:
                 game.player1_ships_remaining -= 1
-            
+
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}',
@@ -125,14 +132,16 @@ class BattleshipApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
 
-        if self._is_correct_player_moving(game, request.is_player1_move) == False:
+        if self._is_correct_player(game, request.is_player1_move) is False:
             return game.to_form('It is not your turn!')
 
         # Remove the ship location that was hit
-        self._set_new_ships_locations(game, request.move, request.is_player1_move)
+        self._set_new_ships_locations(
+            game, request.move, request.is_player1_move)
 
         # Decrease the ships remaining if the ship is hit
-        self._set_new_ships_remaining(game, request.is_ship_destroyed, request.is_player1_move)
+        self._set_new_ships_remaining(
+            game, request.is_ship_destroyed, request.is_player1_move)
 
         if(request.is_player1_move):
             current_player = game.player1
@@ -142,12 +151,12 @@ class BattleshipApi(remote.Service):
             next_player = game.player1
 
         if current_player is not None:
-            current_player_name =  current_player.get().name
+            current_player_name = current_player.get().name
         else:
             current_player_name = 'Computer'
 
         if next_player is not None:
-            next_player_name =  next_player.get().name
+            next_player_name = next_player.get().name
         else:
             next_player_name = 'Computer'
 
@@ -161,7 +170,8 @@ class BattleshipApi(remote.Service):
         # Update last move time
         game.last_move = datetime.now()
 
-        if game.player1_ships_remaining < 1 or game.player2_ships_remaining < 1:
+        if game.player1_ships_remaining < 1 or \
+           game.player2_ships_remaining < 1:
             if game.player1_ships_remaining < 1:
                 game.end_game(game.player2)
                 winner_name = game.player2.get().name
@@ -173,11 +183,15 @@ class BattleshipApi(remote.Service):
             game.current_player = next_player
             game.put()
             # Send a reminder email to opponent upon each move
-            if game.current_player != None:
+            if game.current_player is not None:
                 taskqueue.add(
                     url='/tasks/send_notification_to_opponent',
-                    params={'player_to_move':next_player_name})
-            return game.to_form(current_player_name + ' has moved. ' + next_player_name + '\'s turn')
+                    params={'player_to_move': next_player_name})
+            return game.to_form(
+                current_player_name +
+                ' has moved. ' +
+                next_player_name +
+                '\'s turn')
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
@@ -197,7 +211,7 @@ class BattleshipApi(remote.Service):
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException(
-                    'A User with that name does not exist!')
+                'A User with that name does not exist!')
         scores = Score.query(Score.winner == user.key)
         return ScoreForms(items=[score.to_form() for score in scores])
 
@@ -211,7 +225,7 @@ class BattleshipApi(remote.Service):
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException(
-                    'A User with that name does not exist!')
+                'A User with that name does not exist!')
         games = Game.query(ndb.AND(Game.game_over == False,
                                    Game.cancelled == False,
                                    ndb.OR(Game.player1 == user.key,
@@ -250,7 +264,8 @@ class BattleshipApi(remote.Service):
         try:
             scores = scores.fetch(request.number_of_results)
         except:
-            raise endpoints.BadRequestException('Please put in a positive number')
+            raise endpoints.BadRequestException(
+                'Please put in a positive number')
         return ScoreForms(items=[score.to_form() for score in scores])
 
     @endpoints.method(response_message=RankForms,
@@ -269,7 +284,8 @@ class BattleshipApi(remote.Service):
             else:
                 scores_grouped_by_user[name] = score.ships_remaining
 
-        rankings = sorted(scores_grouped_by_user.items(), key=operator.itemgetter(1))
+        rankings = sorted(
+            scores_grouped_by_user.items(), key=operator.itemgetter(1))
         rankings.reverse()
 
         def make_rank_form(score):
@@ -289,7 +305,11 @@ class BattleshipApi(remote.Service):
         """Return the history of game"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            return GameStepForms(items=[GameStepForm(player=step.player, move=step.move, is_ship_destroyed=step.is_ship_destroyed) for step in game.history])
+            return GameStepForms(items=[GameStepForm(
+                                 player=step.player,
+                                 move=step.move,
+                                 is_ship_destroyed=step.is_ship_destroyed)
+                                 for step in game.history])
         else:
             raise endpoints.NotFoundException('Game not found!')
 
@@ -301,7 +321,8 @@ class BattleshipApi(remote.Service):
                                    Game.cancelled == False))
         for game in games:
             elapsedTime = datetime.now() - game.last_move
-            elaspedHours, elaspedSeconds = divmod(elapsedTime.days * 86400 + elapsedTime.seconds, 3600)
+            elaspedHours, elaspedSeconds = divmod(
+                elapsedTime.days * 86400 + elapsedTime.seconds, 3600)
             if elaspedSeconds >= 12:
                 inactive_games.append(game)
 

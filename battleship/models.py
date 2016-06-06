@@ -7,12 +7,13 @@ from datetime import date
 from protorpc import messages, message_types
 from google.appengine.ext import ndb
 
-DEFAULT_NUMBER_OF_SHIPS = 5
+DEFAULT_SHIPS = 5
+
 
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
-    email =ndb.StringProperty()
+    email = ndb.StringProperty()
 
 
 class Game(ndb.Model):
@@ -20,9 +21,9 @@ class Game(ndb.Model):
     player1 = ndb.KeyProperty(required=True, kind='User')
     player2 = ndb.KeyProperty(kind='User')
     player1_ships_remaining = ndb.IntegerProperty(required=True,
-                                                  default=DEFAULT_NUMBER_OF_SHIPS)
+                                                  default=DEFAULT_SHIPS)
     player2_ships_remaining = ndb.IntegerProperty(required=True,
-                                                  default=DEFAULT_NUMBER_OF_SHIPS)
+                                                  default=DEFAULT_SHIPS)
     player1_ships_location = ndb.StringProperty(repeated=True)
     player2_ships_location = ndb.StringProperty(repeated=True)
     current_player = ndb.KeyProperty(kind='User')
@@ -35,11 +36,13 @@ class Game(ndb.Model):
     def new_game(cls, user1, user2,
                  player1_ships_location, player2_ships_location):
         """Creates and returns a new game"""
-        # Ship location is arbitrary in API interface. This API expect the validation of ship location in frontend. So that ships are not overlapped.
+        # Ship location is arbitrary in API interface.
+        # This API expect the validation of ship location in frontend.
+        # So that ships are not overlapped.
         game = Game(player1=user1,
                     player2=user2,
-                    player1_ships_remaining=DEFAULT_NUMBER_OF_SHIPS,
-                    player2_ships_remaining=DEFAULT_NUMBER_OF_SHIPS,
+                    player1_ships_remaining=DEFAULT_SHIPS,
+                    player2_ships_remaining=DEFAULT_SHIPS,
                     player1_ships_location=player1_ships_location,
                     player2_ships_location=player2_ships_location,
                     current_player=user1,
@@ -73,7 +76,8 @@ class Game(ndb.Model):
         return form
 
     def end_game(self, winner=False):
-        """Ends the game - winner will be either player 1 or 2, or will be False if AI wins"""
+        """Ends the game - winner will be either player 1 or 2,
+        # or will be False if AI wins"""
         self.game_over = True
         self.put()
         # Add the game to the score 'board' if a player wins
@@ -82,19 +86,23 @@ class Game(ndb.Model):
                 ships_remaining = self.player1_ships_remaining
             else:
                 ships_remaining = self.player2_ships_remaining
-            score = Score(winner=winner, date=date.today(), ships_remaining=ships_remaining)
+            score = Score(winner=winner,
+                          date=date.today(),
+                          ships_remaining=ships_remaining)
             score.put()
 
 
 class Score(ndb.Model):
-    """Score object. For Single player game, only those who beat AI player will be stored"""
+    """Score object. For Single player game,
+    only those who beat AI player will be stored"""
     winner = ndb.KeyProperty(required=True, kind='User')
     date = ndb.DateProperty(required=True)
     ships_remaining = ndb.IntegerProperty(required=True)
 
     def to_form(self):
         return ScoreForm(winner=self.winner.get().name,
-                         date=str(self.date), ships_remaining=self.ships_remaining)
+                         date=str(self.date),
+                         ships_remaining=self.ships_remaining)
 
 
 class GameStepForm(messages.Message):
