@@ -100,6 +100,9 @@ class BattleshipApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
 
+        if game.cancelled:
+                return game.to_form('Game already cancelled!')
+
         # Check if this move is from the correct player
         if self._is_correct_player(game, request.is_player1_move) is False:
             return game.to_form('It is not your turn!')
