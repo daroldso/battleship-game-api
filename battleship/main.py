@@ -9,8 +9,7 @@ from google.appengine.api import mail, app_identity
 from google.appengine.ext import ndb
 from api import BattleshipApi
 
-from models import User, Game
-from datetime import datetime
+from models import User
 
 
 class SendReminderEmail(webapp2.RequestHandler):
@@ -18,20 +17,13 @@ class SendReminderEmail(webapp2.RequestHandler):
         """Send a reminder email to each User with an email about games.
         Called every hour using a cron job"""
         app_id = app_identity.get_application_id()
-        users = []
-        games = Game.query(ndb.AND(Game.game_over == False,
-                                   Game.cancelled == False))
-        inactive_games = []
-        for game in games:
-            elapsedTime = datetime.now() - game.last_move
-            elaspedHours, elaspedSeconds = divmod(elapsedTime.days * 86400 + elapsedTime.seconds, 3600)
-            if elaspedHours >= 12:
-                inactive_games.append(game)
+        inactive_games = BattleshipApi._get_inactive_games()
+        
         for inactive_game in inactive_games:
             if inactive_game.current_player != None:
                 user = inactive_game.current_player.get()
-                if game.player1.get().name == user.name:
-                    another_user_name = game.player2.get().name
+                if inactive_game.player1.get().name == user.name:
+                    another_user_name = inactive_game.player2.get().name
                 else:
                     another_user_name = user.name
                 subject = 'This is a reminder!'
@@ -40,13 +32,6 @@ class SendReminderEmail(webapp2.RequestHandler):
                                user.email,
                                subject,
                                body)
-
-
-class UpdateAverageMovesRemaining(webapp2.RequestHandler):
-    def post(self):
-        """Update game listing announcement in memcache."""
-        # BattleshipApi._cache_average_attempts()
-        self.response.set_status(204)
 
 
 class SendNoticationEmailToOpponent(webapp2.RequestHandler):
@@ -65,6 +50,5 @@ class SendNoticationEmailToOpponent(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([
     ('/crons/send_reminder', SendReminderEmail),
-    ('/tasks/cache_average_attempts', UpdateAverageMovesRemaining),
     ('/tasks/send_notification_to_opponent', SendNoticationEmailToOpponent),
 ], debug=True)

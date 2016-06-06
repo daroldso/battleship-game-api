@@ -93,6 +93,27 @@ class BattleshipApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
+    def _is_correct_player_moving(self, game, is_player1_move):
+        if is_player1_move:
+            return game.current_player == game.player1
+        else:
+            return game.current_player == game.player2
+
+    def _set_new_ships_locations(self, game, move, is_player1_move):
+        if is_player1_move:
+            new_location = [coord for coord in game.player2_ships_location if move != coord]
+            game.player2_ships_location = new_location
+        else:
+            new_location = [coord for coord in game.player1_ships_location if move != coord]
+            game.player1_ships_location = new_location
+
+    def _set_new_ships_remaining(self, game, is_ship_destroyed, is_player1_move):
+        if is_ship_destroyed:
+            if is_player1_move:
+                game.player2_ships_remaining -= 1
+            else:
+                game.player1_ships_remaining -= 1
+            
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}',
@@ -104,26 +125,19 @@ class BattleshipApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
 
+        if self._is_correct_player_moving(game, request.is_player1_move) == False:
+            return game.to_form('It is not your turn!')
+
+        # Remove the ship location that was hit
+        self._set_new_ships_locations(game, request.move, request.is_player1_move)
+
+        # Decrease the ships remaining if the ship is hit
+        self._set_new_ships_remaining(game, request.is_ship_destroyed, request.is_player1_move)
+
         if(request.is_player1_move):
-            if game.current_player != game.player1:
-                return game.to_form('It is not your turn!')
-            # Remove the hit location
-            new_location = [coord for coord in game.player1_ships_location if request.move != coord]
-            game.player1_ships_location = new_location
-
-            if request.is_ship_destroyed:
-                game.player2_ships_remaining -= 1
-
             current_player = game.player1
             next_player = game.player2
         else:
-            if game.current_player != game.player2:
-                return game.to_form('It is not your turn!')
-            if request.is_ship_destroyed:
-                game.player1_ships_remaining -= 1
-
-            new_location = [coord for coord in game.player2_ships_location if request.move != coord]
-            game.player2_ships_location = new_location
             current_player = game.player2
             next_player = game.player1
 
@@ -250,7 +264,10 @@ class BattleshipApi(remote.Service):
 
         for score in scores:
             name = score.winner.get().name
-            scores_grouped_by_user[name] = score.ships_remaining
+            if name in scores_grouped_by_user:
+                scores_grouped_by_user[name] += score.ships_remaining
+            else:
+                scores_grouped_by_user[name] = score.ships_remaining
 
         rankings = sorted(scores_grouped_by_user.items(), key=operator.itemgetter(1))
         rankings.reverse()
@@ -276,25 +293,18 @@ class BattleshipApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
-    @endpoints.method(response_message=StringMessage,
-                      path='games/average_attempts',
-                      name='get_average_attempts_remaining',
-                      http_method='GET')
-    def get_average_attempts(self, request):
-        """Get the cached average moves remaining"""
-        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
-
     @staticmethod
-    def _cache_average_attempts():
-        """Populates memcache with the average moves remaining of Games"""
-        games = Game.query(Game.game_over == False).fetch()
-        if games:
-            count = len(games)
-            total_attempts_remaining = sum([game.attempts_remaining
-                                        for game in games])
-            average = float(total_attempts_remaining)/count
-            memcache.set(MEMCACHE_MOVES_REMAINING,
-                         'The average moves remaining is {:.2f}'.format(average))
+    def _get_inactive_games():
+        """Return the games with last move longer than 12 hours"""
+        inactive_games = []
+        games = Game.query(ndb.AND(Game.game_over == False,
+                                   Game.cancelled == False))
+        for game in games:
+            elapsedTime = datetime.now() - game.last_move
+            elaspedHours, elaspedSeconds = divmod(elapsedTime.days * 86400 + elapsedTime.seconds, 3600)
+            if elaspedSeconds >= 12:
+                inactive_games.append(game)
 
+        return inactive_games
 
 api = endpoints.api_server([BattleshipApi])
