@@ -1,5 +1,5 @@
 # Battleship Game API
-This is the Project 3 of Full Stack Web Developer Nanodegree by Udacity
+This is the Project 4 of Full Stack Web Developer Nanodegree by Udacity
  
 ## Installation
 1.  Update the value of application in app.yaml to the app ID you have registered
@@ -7,12 +7,12 @@ This is the Project 3 of Full Stack Web Developer Nanodegree by Udacity
 1.  Run the app with the devserver using dev_appserver.py DIR, and ensure it's
  running by visiting the API Explorer - by default localhost:8080/_ah/api/explorer.
 
-##Game Description:
-Battle is a guessing game between 2 players. Each game begins with each player having 5 ships in their own arena. Their ships will be placed in the grid either horizontally or vertically. Ships cannot be overlapped. In each move, one of the player will decide a coordinate to hit. It can either hit or miss the ships of the opponents. The ship will be sinked when all the coordinates of the ship was hit. Player who has no ship remaining is lost.
+##Game Description
+Battleship is a guessing game based on grids between 2 players. Each game begins with each player having 5 ships in their own arena. Their ships will be placed in the grid either horizontally or vertically. Ships cannot be overlapped. In each move, one of the player will decide a coordinate to hit. It can either hit or miss the ships of the opponents. The ship will be sinked when all the coordinates of the ship was hit. Player who has no ship remaining is lost.
 'Moves' are sent to `make_move` endpoint which will reply with the state of the game and who is next to move.
 Score is recorded when the game ends with the ships remaining as the actual score of the player of that game.
 
-##Files Included:
+##Files Included
  - api.py: Contains endpoints and game playing logic.
  - app.yaml: App configuration.
  - cron.yaml: Cronjob configuration.
@@ -20,7 +20,7 @@ Score is recorded when the game ends with the ships remaining as the actual scor
  - models.py: Entity and message definitions including helper methods.
  - utils.py: Helper function for retrieving ndb.Models by urlsafe Key string
 
-##Endpoints Included:
+##Endpoints Included
  - **create_user**
     - Path: 'user'
     - Method: POST
@@ -101,7 +101,7 @@ Score is recorded when the game ends with the ships remaining as the actual scor
     - Returns: GameStepForms
     - Description: Return the history of a game in an array of moves.
 
-##Models Included:
+##Models Included
  - **User**
     - Stores unique user_name and (optional) email address.
     
@@ -111,7 +111,7 @@ Score is recorded when the game ends with the ships remaining as the actual scor
  - **Score**
     - Records completed games. Associated with Users model via KeyProperty.
     
-##Forms Included:
+##Forms Included
  - **GameStepForm**
     - Representation of a Game's move (player, move, is_ship_destroyed).
  - **GameStepForms**
