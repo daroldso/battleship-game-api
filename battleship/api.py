@@ -105,6 +105,8 @@ class BattleshipApi(remote.Service):
             return game.to_form('Game already over!')
 
         if(request.is_player1_move):
+            if game.current_player != game.player1:
+                return game.to_form('It is not your turn!')
             # Remove the hit location
             new_location = [coord for coord in game.player1_ships_location if request.move != coord]
             game.player1_ships_location = new_location
@@ -115,6 +117,8 @@ class BattleshipApi(remote.Service):
             current_player = game.player1
             next_player = game.player2
         else:
+            if game.current_player != game.player2:
+                return game.to_form('It is not your turn!')
             if request.is_ship_destroyed:
                 game.player1_ships_remaining -= 1
 
