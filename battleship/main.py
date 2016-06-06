@@ -15,15 +15,19 @@ from models import User
 class SendReminderEmail(webapp2.RequestHandler):
     def get(self):
         """Send a reminder email to each User who has not moved 12 hours after
-        their opponents moved. Checked every hour using a cron job"""
+        their opponents moved in every dormant game. Checked every hour using
+        a cron job"""
         app_id = app_identity.get_application_id()
-        inactive_games = BattleshipApi._get_inactive_games()
+        dormant_games = BattleshipApi._get_dormant_games()
 
-        for inactive_game in inactive_games:
-            if inactive_game.current_player is not None:
-                user = inactive_game.current_player.get()
-                if inactive_game.player1.get().name == user.name:
-                    another_user_name = inactive_game.player2.get().name
+        for dormant_game in dormant_games:
+            if dormant_game.current_player is not None:
+                user = dormant_game.current_player.get()
+                if dormant_game.player1.get().name == user.name:
+                    if dormant_game.player2 is not None:
+                        another_user_name = dormant_game.player2.get().name
+                    else:
+                        another_user_name = 'Computer'
                 else:
                     another_user_name = user.name
                 subject = 'This is a reminder!'

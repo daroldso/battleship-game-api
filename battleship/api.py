@@ -315,18 +315,18 @@ class BattleshipApi(remote.Service):
                 game.player1_ships_remaining -= 1
 
     @staticmethod
-    def _get_inactive_games():
+    def _get_dormant_games():
         """Return the games with last move time later than 12 hours"""
-        inactive_games = []
+        dormant_games = []
         games = Game.query(ndb.AND(Game.game_over == False,
                                    Game.cancelled == False))
         for game in games:
             elapsedTime = datetime.now() - game.last_move
             elaspedHours, elaspedSeconds = divmod(
                 elapsedTime.days * 86400 + elapsedTime.seconds, 3600)
-            if elaspedSeconds >= 12:
-                inactive_games.append(game)
+            if elaspedHours >= 12:
+                dormant_games.append(game)
 
-        return inactive_games
+        return dormant_games
 
 api = endpoints.api_server([BattleshipApi])
