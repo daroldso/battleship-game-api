@@ -1,0 +1,19 @@
+What additional properties did you add to your models and why?
+Game model
+- player2: To add support for 2 players
+- player1_ships_remaining, player2_ships_remaining: To determine whether there is still ship remaining of each player and the game should be ended
+- player1_ships_location, player2_ships_location: To determine whether the player has hit the ship of the opponent
+- current_player: To store the player who should take the next step for use in notification
+- cancelled: Add a cancelled state to support manually stopping the game
+- history: Add support to showing the history of players' moves
+- last_move: For use in notification to determine whether the game has been inactive for a long time
+
+Score model
+- ships_remaining: Use the remaining ship as the score of the player
+
+
+What were some of the trade-offs or struggles you faced when implementing the new game logic?
+- 2 players game: Has to determine the who should be moving in this round
+- Play against computer if only one player: Has to carefully decide the flow between 2-players and 1-player scenarios
+- Has to store the all ship coordinates, considering the frontend will need to use it to display the ships.
+- When new game is created, ship location is array of arbitrary strings values without valiation. Since the validation of appropriate ship location could be done in frontend, i.e. put the whole ship in the grid and send the ship coordinated to backend. I skipped the backend validation to keep the flexibility of the API
