@@ -14,8 +14,8 @@ from models import User
 
 class SendReminderEmail(webapp2.RequestHandler):
     def get(self):
-        """Send a reminder email to each User with an email about games.
-        Called every hour using a cron job"""
+        """Send a reminder email to each User who has not moved 12 hours after
+        their opponents moved. Checked every hour using a cron job"""
         app_id = app_identity.get_application_id()
         inactive_games = BattleshipApi._get_inactive_games()
 

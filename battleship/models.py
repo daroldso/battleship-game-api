@@ -36,7 +36,7 @@ class Game(ndb.Model):
     def new_game(cls, user1, user2,
                  player1_ships_location, player2_ships_location):
         """Creates and returns a new game"""
-        # Ship location is arbitrary in API interface.
+        # Ship location is entered arbitrarily in API interface.
         # This API expect the validation of ship location in frontend.
         # So that ships are not overlapped.
         game = Game(player1=user1,

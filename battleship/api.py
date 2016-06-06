@@ -132,6 +132,7 @@ class BattleshipApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
 
+        # Check if this move is from the correct player
         if self._is_correct_player(game, request.is_player1_move) is False:
             return game.to_form('It is not your turn!')
 
@@ -160,7 +161,7 @@ class BattleshipApi(remote.Service):
         else:
             next_player_name = 'Computer'
 
-        # Save move to history
+        # Save move to game history
         move = GameStepForm()
         move.player = current_player_name
         move.move = request.move
@@ -302,7 +303,7 @@ class BattleshipApi(remote.Service):
                       name='get_game_history',
                       http_method='GET')
     def get_game_history(self, request):
-        """Return the history of game"""
+        """Return the history of game in an array of moves"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
             return GameStepForms(items=[GameStepForm(
@@ -315,7 +316,7 @@ class BattleshipApi(remote.Service):
 
     @staticmethod
     def _get_inactive_games():
-        """Return the games with last move longer than 12 hours"""
+        """Return the games with last move time later than 12 hours"""
         inactive_games = []
         games = Game.query(ndb.AND(Game.game_over == False,
                                    Game.cancelled == False))
