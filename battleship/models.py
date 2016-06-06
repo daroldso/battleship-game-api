@@ -4,7 +4,7 @@ classes they can include methods (such as 'to_form' and 'new_game')."""
 
 import random
 from datetime import date
-from protorpc import messages
+from protorpc import messages, message_types
 from google.appengine.ext import ndb
 
 DEFAULT_NUMBER_OF_SHIPS = 5
@@ -29,13 +29,13 @@ class Game(ndb.Model):
     game_over = ndb.BooleanProperty(required=True, default=False)
     cancelled = ndb.BooleanProperty(required=True, default=False)
     history = ndb.PickleProperty(repeated=True)
+    last_move = ndb.DateTimeProperty(auto_now_add=True)
 
     @classmethod
     def new_game(cls, user1, user2,
                  player1_ships_location, player2_ships_location):
         """Creates and returns a new game"""
-        # if user2 is not None:
-            # user2 = None
+        # Ship location is arbitrary in API interface. This API expect the validation of ship location in frontend. So that ships are not overlapped.
         game = Game(player1=user1,
                     player2=user2,
                     player1_ships_remaining=DEFAULT_NUMBER_OF_SHIPS,
@@ -68,6 +68,7 @@ class Game(ndb.Model):
             form.current_player = 'Computer'
         form.game_over = self.game_over
         form.cancelled = self.cancelled
+        form.last_move = self.last_move
         form.message = message
         return form
 
@@ -122,6 +123,7 @@ class GameForm(messages.Message):
     current_player = messages.StringField(10)
     cancelled = messages.BooleanField(11)
     history = messages.MessageField(GameStepForm, 12, repeated=True)
+    last_move = message_types.DateTimeField(13)
 
 
 class GameForms(messages.Message):

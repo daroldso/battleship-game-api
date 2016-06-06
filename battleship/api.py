@@ -16,6 +16,7 @@ from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
     ScoreForms, GameForms, RankForm, RankForms, GameStepForm, GameStepForms
 from utils import get_by_urlsafe
+from datetime import datetime
 
 import operator
 
@@ -137,8 +138,10 @@ class BattleshipApi(remote.Service):
         move.player = current_player_name
         move.move = request.move
         move.is_ship_destroyed = request.is_ship_destroyed
-
         game.history.append(move)
+
+        # Update last move time
+        game.last_move = datetime.now()
 
         if game.player1_ships_remaining < 1 or game.player2_ships_remaining < 1:
             if game.player1_ships_remaining < 1:
@@ -151,6 +154,11 @@ class BattleshipApi(remote.Service):
         else:
             game.current_player = next_player
             game.put()
+            # Send a reminder email to opponent upon each move
+            if game.current_player != None:
+                taskqueue.add(
+                    url='/tasks/send_notification_to_opponent',
+                    params={'player_to_move':next_player_name})
             return game.to_form(current_player_name + ' has moved. ' + next_player_name + '\'s turn')
 
     @endpoints.method(response_message=ScoreForms,
@@ -264,25 +272,25 @@ class BattleshipApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
-    # @endpoints.method(response_message=StringMessage,
-    #                   path='games/average_attempts',
-    #                   name='get_average_attempts_remaining',
-    #                   http_method='GET')
-    # def get_average_attempts(self, request):
-    #     """Get the cached average moves remaining"""
-    #     return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+    @endpoints.method(response_message=StringMessage,
+                      path='games/average_attempts',
+                      name='get_average_attempts_remaining',
+                      http_method='GET')
+    def get_average_attempts(self, request):
+        """Get the cached average moves remaining"""
+        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
 
-    # @staticmethod
-    # def _cache_average_attempts():
-    #     """Populates memcache with the average moves remaining of Games"""
-    #     games = Game.query(Game.game_over == False).fetch()
-    #     if games:
-    #         count = len(games)
-    #         total_attempts_remaining = sum([game.attempts_remaining
-    #                                     for game in games])
-    #         average = float(total_attempts_remaining)/count
-    #         memcache.set(MEMCACHE_MOVES_REMAINING,
-    #                      'The average moves remaining is {:.2f}'.format(average))
+    @staticmethod
+    def _cache_average_attempts():
+        """Populates memcache with the average moves remaining of Games"""
+        games = Game.query(Game.game_over == False).fetch()
+        if games:
+            count = len(games)
+            total_attempts_remaining = sum([game.attempts_remaining
+                                        for game in games])
+            average = float(total_attempts_remaining)/count
+            memcache.set(MEMCACHE_MOVES_REMAINING,
+                         'The average moves remaining is {:.2f}'.format(average))
 
 
 api = endpoints.api_server([BattleshipApi])
