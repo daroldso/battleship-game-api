@@ -14,8 +14,10 @@ from google.appengine.ext import ndb
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameForms, RankForm, RankForms, GameStepForm, GameStepForms
+    ScoreForms, GameForms, RankForm, RankForms, GameStepForm, GameStepForms,\
+    GridForm
 from utils import get_by_urlsafe
+from game import GameLogic
 from datetime import datetime
 
 import operator
@@ -67,9 +69,21 @@ class BattleshipApi(remote.Service):
             user2key = user2
         else:
             user2key = user2.key
+
+        player1_primary_grid = GameLogic.place_ship_on_grid(
+                                request,
+                                '1')
+        player2_primary_grid = GameLogic.place_ship_on_grid(
+                                request,
+                                '2')
+        player1_tracking_grid = GameLogic.create_default_grid()
+        player2_tracking_grid = GameLogic.create_default_grid()
+
         game = Game.new_game(user1.key, user2key,
-                             request.player1_ships_location,
-                             request.player2_ships_location)
+                             player1_primary_grid,
+                             player2_primary_grid,
+                             player1_tracking_grid,
+                             player2_tracking_grid)
 
         return game.to_form('Good luck playing Battleship!')
 
@@ -104,15 +118,15 @@ class BattleshipApi(remote.Service):
                 return game.to_form('Game already cancelled!')
 
         # Check if this move is from the correct player
-        if self._is_correct_player(game, request.is_player1_move) is False:
+        if GameLogic.is_correct_player(game, request.is_player1_move) is False:
             return game.to_form('It is not your turn!')
 
         # Remove the ship location that was hit
-        self._set_new_ships_locations(
-            game, request.move, request.is_player1_move)
+        # GameLogic.set_new_ships_locations(
+        #     game, request.move, request.is_player1_move)
 
         # Decrease the ships remaining if the ship is hit
-        self._set_new_ships_remaining(
+        GameLogic.set_new_ships_remaining(
             game, request.is_ship_destroyed, request.is_player1_move)
 
         if(request.is_player1_move):
@@ -284,35 +298,6 @@ class BattleshipApi(remote.Service):
                                  for step in game.history])
         else:
             raise endpoints.NotFoundException('Game not found!')
-
-    # Instance methods
-    def _is_correct_player(self, game, is_player1_move):
-        if is_player1_move:
-            return game.current_player == game.player1
-        else:
-            return game.current_player == game.player2
-
-    def _set_new_ships_locations(self, game, move, is_player1_move):
-        if is_player1_move:
-            new_location = [
-                coord for coord in game.player2_ships_location if move != coord
-            ]
-            game.player2_ships_location = new_location
-        else:
-            new_location = [
-                coord for coord in game.player1_ships_location if move != coord
-            ]
-            game.player1_ships_location = new_location
-
-    def _set_new_ships_remaining(self,
-                                 game,
-                                 is_ship_destroyed,
-                                 is_player1_move):
-        if is_ship_destroyed:
-            if is_player1_move:
-                game.player2_ships_remaining -= 1
-            else:
-                game.player1_ships_remaining -= 1
 
     @staticmethod
     def _get_dormant_games():

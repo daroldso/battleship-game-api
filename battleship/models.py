@@ -24,8 +24,10 @@ class Game(ndb.Model):
                                                   default=DEFAULT_SHIPS)
     player2_ships_remaining = ndb.IntegerProperty(required=True,
                                                   default=DEFAULT_SHIPS)
-    player1_ships_location = ndb.StringProperty(repeated=True)
-    player2_ships_location = ndb.StringProperty(repeated=True)
+    player1_primary_grid = ndb.PickleProperty(repeated=True)
+    player2_primary_grid = ndb.PickleProperty(repeated=True)
+    player1_tracking_grid = ndb.PickleProperty(repeated=True)
+    player2_tracking_grid = ndb.PickleProperty(repeated=True)
     current_player = ndb.KeyProperty(kind='User')
     game_over = ndb.BooleanProperty(required=True, default=False)
     cancelled = ndb.BooleanProperty(required=True, default=False)
@@ -34,7 +36,8 @@ class Game(ndb.Model):
 
     @classmethod
     def new_game(cls, user1, user2,
-                 player1_ships_location, player2_ships_location):
+                 player1_primary_grid, player2_primary_grid,
+                 player1_tracking_grid, player2_tracking_grid):
         """Creates and returns a new game"""
         # Ship location is entered arbitrarily in API interface.
         # This API expect the validation of ship location in frontend.
@@ -43,8 +46,10 @@ class Game(ndb.Model):
                     player2=user2,
                     player1_ships_remaining=DEFAULT_SHIPS,
                     player2_ships_remaining=DEFAULT_SHIPS,
-                    player1_ships_location=player1_ships_location,
-                    player2_ships_location=player2_ships_location,
+                    player1_primary_grid=player1_primary_grid,
+                    player2_primary_grid=player2_primary_grid,
+                    player1_tracking_grid=player1_tracking_grid,
+                    player2_tracking_grid=player2_tracking_grid,
                     current_player=user1,
                     game_over=False,
                     cancelled=False,
@@ -63,8 +68,10 @@ class Game(ndb.Model):
             form.player2_name = 'Computer'
         form.player1_ships_remaining = self.player1_ships_remaining
         form.player2_ships_remaining = self.player2_ships_remaining
-        form.player1_ships_location = self.player1_ships_location
-        form.player2_ships_location = self.player2_ships_location
+        form.player1_primary_grid = self.to_grid_form(self.player1_primary_grid)
+        form.player2_primary_grid = self.to_grid_form(self.player2_primary_grid)
+        form.player1_tracking_grid = self.to_grid_form(self.player1_tracking_grid)
+        form.player2_tracking_grid = self.to_grid_form(self.player2_tracking_grid)
         if(self.current_player):
             form.current_player = self.current_player.get().name
         else:
@@ -74,6 +81,20 @@ class Game(ndb.Model):
         form.last_move = self.last_move
         form.message = message
         return form
+
+    def to_grid_form(self, grids):
+        return GridForm(
+                    A=grids[0],
+                    B=grids[1],
+                    C=grids[2],
+                    D=grids[3],
+                    E=grids[4],
+                    F=grids[5],
+                    G=grids[6],
+                    H=grids[7],
+                    I=grids[8],
+                    J=grids[9]
+               )
 
     def end_game(self, winner=False):
         """Ends the game - winner will be either player 1 or 2,
@@ -117,21 +138,37 @@ class GameStepForms(messages.Message):
     items = messages.MessageField(GameStepForm, 1, repeated=True)
 
 
+class GridForm(messages.Message):
+    """GameStepForm for outbound game history"""
+    A = messages.StringField(1, repeated=True)
+    B = messages.StringField(2, repeated=True)
+    C = messages.StringField(3, repeated=True)
+    D = messages.StringField(4, repeated=True)
+    E = messages.StringField(5, repeated=True)
+    F = messages.StringField(6, repeated=True)
+    G = messages.StringField(7, repeated=True)
+    H = messages.StringField(8, repeated=True)
+    I = messages.StringField(9, repeated=True)
+    J = messages.StringField(10, repeated=True)
+
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
     player1_ships_remaining = messages.IntegerField(2, required=True)
     player2_ships_remaining = messages.IntegerField(3)
-    player1_ships_location = messages.StringField(4, repeated=True)
-    player2_ships_location = messages.StringField(5, repeated=True)
-    game_over = messages.BooleanField(6, required=True)
-    message = messages.StringField(7, required=True)
+    player1_primary_grid = messages.MessageField(GridForm, 4)
+    player2_primary_grid = messages.MessageField(GridForm, 5)
+    player1_tracking_grid = messages.MessageField(GridForm, 6)
+    player2_tracking_grid = messages.MessageField(GridForm, 7)
     player1_name = messages.StringField(8, required=True)
     player2_name = messages.StringField(9)
     current_player = messages.StringField(10)
     cancelled = messages.BooleanField(11)
     history = messages.MessageField(GameStepForm, 12, repeated=True)
     last_move = message_types.DateTimeField(13)
+    game_over = messages.BooleanField(14, required=True)
+    message = messages.StringField(15, required=True)
 
 
 class GameForms(messages.Message):
@@ -139,12 +176,58 @@ class GameForms(messages.Message):
     items = messages.MessageField(GameForm, 1, repeated=True)
 
 
+class GridRowNum(messages.Enum):
+    """GridRowNum -- The row number of the grid"""
+    A = 0
+    B = 1
+    C = 2
+    D = 3
+    E = 4
+    F = 5
+    G = 6
+    H = 7
+    I = 8
+    J = 9
+
+
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     player1_name = messages.StringField(1, required=True)
     player2_name = messages.StringField(2)
-    player1_ships_location = messages.StringField(3, repeated=True)
-    player2_ships_location = messages.StringField(4, repeated=True)
+
+    player1_aircraft_carrier_is_horizontal = \
+        messages.BooleanField(3, required=True)
+    player1_aircraft_carrier_start_row = messages.EnumField('GridRowNum', 4, required=True)
+    player1_aircraft_carrier_start_col = messages.IntegerField(5, required=True)
+    player1_battleship_is_horizontal = messages.BooleanField(6, required=True)
+    player1_battleship_start_row = messages.EnumField('GridRowNum', 7, required=True)
+    player1_battleship_start_col = messages.IntegerField(8, required=True)
+    player1_submarine_is_horizontal = messages.BooleanField(9, required=True)
+    player1_submarine_start_row = messages.EnumField('GridRowNum', 10, required=True)
+    player1_submarine_start_col = messages.IntegerField(11, required=True)
+    player1_destroyer_is_horizontal = messages.BooleanField(12, required=True)
+    player1_destroyer_start_row = messages.EnumField('GridRowNum', 13, required=True)
+    player1_destroyer_start_col = messages.IntegerField(14, required=True)
+    player1_patrol_boat_is_horizontal = messages.BooleanField(15, required=True)
+    player1_patrol_boat_start_row = messages.EnumField('GridRowNum', 16, required=True)
+    player1_patrol_boat_start_col = messages.IntegerField(17, required=True)
+
+    player2_aircraft_carrier_is_horizontal = \
+        messages.BooleanField(18, required=True)
+    player2_aircraft_carrier_start_row = messages.EnumField('GridRowNum', 19, required=True)
+    player2_aircraft_carrier_start_col = messages.IntegerField(20, required=True)
+    player2_battleship_is_horizontal = messages.BooleanField(21, required=True)
+    player2_battleship_start_row = messages.EnumField('GridRowNum', 22, required=True)
+    player2_battleship_start_col = messages.IntegerField(23, required=True)
+    player2_submarine_is_horizontal = messages.BooleanField(24, required=True)
+    player2_submarine_start_row = messages.EnumField('GridRowNum', 25, required=True)
+    player2_submarine_start_col = messages.IntegerField(26, required=True)
+    player2_destroyer_is_horizontal = messages.BooleanField(27, required=True)
+    player2_destroyer_start_row = messages.EnumField('GridRowNum', 28, required=True)
+    player2_destroyer_start_col = messages.IntegerField(29, required=True)
+    player2_patrol_boat_is_horizontal = messages.BooleanField(30, required=True)
+    player2_patrol_boat_start_row = messages.EnumField('GridRowNum', 31, required=True)
+    player2_patrol_boat_start_col = messages.IntegerField(32, required=True)
 
 
 class MakeMoveForm(messages.Message):
