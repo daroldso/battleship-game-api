@@ -144,7 +144,7 @@ class BattleshipApi(remote.Service):
         else:
             next_player_name = 'Computer'
 
-        msg = '%s has hit ' % current_player_name
+        msg = '%s has hit the ' % current_player_name
         if is_ship_hit:
             msg += '%s of %s' % (ship_being_hit, next_player_name)
         else:
@@ -182,10 +182,10 @@ class BattleshipApi(remote.Service):
             game.current_player = next_player
             game.put()
             # Send a reminder email to opponent upon each move
-            # if game.current_player is not None:
-            #     taskqueue.add(
-            #         url='/tasks/send_notification_to_opponent',
-            #         params={'player_to_move': next_player_name})
+            if game.current_player is not None:
+                taskqueue.add(
+                    url='/tasks/send_notification_to_opponent',
+                    params={'player_to_move': next_player_name})
             return game.to_game_move_form('%s! %s\'s turn' % (msg, next_player_name), request.is_player1_move)
 
     @endpoints.method(response_message=ScoreForms,

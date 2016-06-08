@@ -172,7 +172,7 @@ class Game(ndb.Model):
 
     def end_game(self, winner=False):
         """Ends the game - winner will be either player 1 or 2,
-        # or will be False if AI wins"""
+        or will be False if AI wins"""
         self.game_over = True
         self.put()
         # Add the game to the score 'board' if a player wins
