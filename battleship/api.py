@@ -115,19 +115,17 @@ class BattleshipApi(remote.Service):
             return game.to_form('Game already over!')
 
         if game.cancelled:
-                return game.to_form('Game already cancelled!')
+            return game.to_form('Game already cancelled!')
 
         # Check if this move is from the correct player
         if GameLogic.is_correct_player(game, request.is_player1_move) is False:
             return game.to_form('It is not your turn!')
 
-        # Remove the ship location that was hit
-        # GameLogic.set_new_ships_locations(
-        #     game, request.move, request.is_player1_move)
+        player_move, is_ship_hit, ship_being_hit, is_ship_destroyed = GameLogic.make_move(request, game)
 
         # Decrease the ships remaining if the ship is hit
         GameLogic.set_new_ships_remaining(
-            game, request.is_ship_destroyed, request.is_player1_move)
+            game, is_ship_destroyed, request.is_player1_move)
 
         if(request.is_player1_move):
             current_player = game.player1
@@ -146,11 +144,20 @@ class BattleshipApi(remote.Service):
         else:
             next_player_name = 'Computer'
 
+        msg = '%s has hit ' % current_player_name
+        if is_ship_hit:
+            msg += '%s of %s' % (ship_being_hit, next_player_name)
+        else:
+            msg += 'nothing'
+
+        if is_ship_destroyed:
+            msg += ' and sunk it'
+
         # Save move to game history
         move = GameStepForm()
         move.player = current_player_name
-        move.move = request.move
-        move.is_ship_destroyed = request.is_ship_destroyed
+        move.move = player_move
+        move.is_ship_destroyed = is_ship_destroyed
         game.history.append(move)
 
         # Update last move time
@@ -160,24 +167,26 @@ class BattleshipApi(remote.Service):
            game.player2_ships_remaining < 1:
             if game.player1_ships_remaining < 1:
                 game.end_game(game.player2)
-                winner_name = game.player2.get().name
+                if game.player2 is not None:
+                    winner_name = game.player2.get().name
+                else:
+                    winner_name = 'Computer'
             else:
                 game.end_game(game.player1)
-                winner_name = game.player1.get().name
-            return game.to_form('Game over! ' + winner_name + ' wins!')
+                if game.player1 is not None:
+                    winner_name = game.player1.get().name
+                else:
+                    winner_name = 'Computer'
+            return game.to_form('Game over! %s wins!' % winner_name)
         else:
             game.current_player = next_player
             game.put()
             # Send a reminder email to opponent upon each move
-            if game.current_player is not None:
-                taskqueue.add(
-                    url='/tasks/send_notification_to_opponent',
-                    params={'player_to_move': next_player_name})
-            return game.to_form(
-                current_player_name +
-                ' has moved. ' +
-                next_player_name +
-                '\'s turn')
+            # if game.current_player is not None:
+            #     taskqueue.add(
+            #         url='/tasks/send_notification_to_opponent',
+            #         params={'player_to_move': next_player_name})
+            return game.to_form('%s! %s\'s turn' % (msg, next_player_name))
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',

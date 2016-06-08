@@ -28,6 +28,16 @@ class Game(ndb.Model):
     player2_primary_grid = ndb.PickleProperty(repeated=True)
     player1_tracking_grid = ndb.PickleProperty(repeated=True)
     player2_tracking_grid = ndb.PickleProperty(repeated=True)
+    player1_aircraft_carrier_remaining = ndb.IntegerProperty(required=True, default=5)
+    player1_battleship_remaining = ndb.IntegerProperty(required=True, default=4)
+    player1_submarine_remaining = ndb.IntegerProperty(required=True, default=3)
+    player1_destroyer_remaining = ndb.IntegerProperty(required=True, default=3)
+    player1_patrol_boat_remaining = ndb.IntegerProperty(required=True, default=2)
+    player2_aircraft_carrier_remaining = ndb.IntegerProperty(required=True, default=5)
+    player2_battleship_remaining = ndb.IntegerProperty(required=True, default=4)
+    player2_submarine_remaining = ndb.IntegerProperty(required=True, default=3)
+    player2_destroyer_remaining = ndb.IntegerProperty(required=True, default=3)
+    player2_patrol_boat_remaining = ndb.IntegerProperty(required=True, default=2)
     current_player = ndb.KeyProperty(kind='User')
     game_over = ndb.BooleanProperty(required=True, default=False)
     cancelled = ndb.BooleanProperty(required=True, default=False)
@@ -66,16 +76,29 @@ class Game(ndb.Model):
             form.player2_name = self.player2.get().name
         else:
             form.player2_name = 'Computer'
-        form.player1_ships_remaining = self.player1_ships_remaining
-        form.player2_ships_remaining = self.player2_ships_remaining
-        form.player1_primary_grid = self.to_grid_form(self.player1_primary_grid)
-        form.player2_primary_grid = self.to_grid_form(self.player2_primary_grid)
-        form.player1_tracking_grid = self.to_grid_form(self.player1_tracking_grid)
-        form.player2_tracking_grid = self.to_grid_form(self.player2_tracking_grid)
+
         if(self.current_player):
             form.current_player = self.current_player.get().name
         else:
             form.current_player = 'Computer'
+
+        form.player1_primary_grid = self.to_grid_form(self.player1_primary_grid)
+        form.player2_primary_grid = self.to_grid_form(self.player2_primary_grid)
+        form.player1_tracking_grid = self.to_grid_form(self.player1_tracking_grid)
+        form.player2_tracking_grid = self.to_grid_form(self.player2_tracking_grid)
+        
+        form.player1_aircraft_carrier_remaining = self.player1_aircraft_carrier_remaining
+        form.player1_battleship_remaining = self.player1_battleship_remaining
+        form.player1_submarine_remaining = self.player1_submarine_remaining
+        form.player1_destroyer_remaining = self.player1_destroyer_remaining
+        form.player1_patrol_boat_remaining = self.player1_patrol_boat_remaining
+        form.player2_aircraft_carrier_remaining = self.player2_aircraft_carrier_remaining
+        form.player2_battleship_remaining = self.player2_battleship_remaining
+        form.player2_submarine_remaining = self.player2_submarine_remaining
+        form.player2_destroyer_remaining = self.player2_destroyer_remaining
+        form.player2_patrol_boat_remaining = self.player2_patrol_boat_remaining
+        form.player1_ships_remaining = self.player1_ships_remaining
+        form.player2_ships_remaining = self.player2_ships_remaining
         form.game_over = self.game_over
         form.cancelled = self.cancelled
         form.last_move = self.last_move
@@ -170,6 +193,19 @@ class GameForm(messages.Message):
     game_over = messages.BooleanField(14, required=True)
     message = messages.StringField(15, required=True)
 
+    player1_aircraft_carrier_remaining = messages.IntegerField(16, required=True)
+    player1_battleship_remaining = messages.IntegerField(17, required=True)
+    player1_submarine_remaining = messages.IntegerField(18, required=True)
+    player1_destroyer_remaining = messages.IntegerField(19, required=True)
+    player1_patrol_boat_remaining = messages.IntegerField(20, required=True)
+    player2_aircraft_carrier_remaining = messages.IntegerField(21, required=True)
+    player2_battleship_remaining = messages.IntegerField(22, required=True)
+    player2_submarine_remaining = messages.IntegerField(23, required=True)
+    player2_destroyer_remaining = messages.IntegerField(24, required=True)
+    player2_patrol_boat_remaining = messages.IntegerField(25, required=True)
+    player1_ships_remaining = messages.IntegerField(26, required=True)
+    player2_ships_remaining = messages.IntegerField(27, required=True)
+
 
 class GameForms(messages.Message):
     """Return multiple GameForms"""
@@ -233,8 +269,10 @@ class NewGameForm(messages.Message):
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
     is_player1_move = messages.BooleanField(1, required=True)
-    move = messages.StringField(2, required=True)
-    is_ship_destroyed = messages.BooleanField(3, required=True)
+    move_row = messages.EnumField('GridRowNum', 2, required=True)
+    move_col = messages.IntegerField(3, required=True)
+    # move = messages.StringField(2, required=True)
+    # is_ship_destroyed = messages.BooleanField(3, required=True)
 
 
 class ScoreForm(messages.Message):
