@@ -11,7 +11,7 @@ This is the Project 4 of Full Stack Web Developer Nanodegree by Udacity
 Battleship is a guessing game based on a 10x10 grids between 2 players. Each game begins with each player having 5 ships in their own arena. They are:
 
 | Ship name | Code | Size |
-| --- | --- |
+| --- | --- | --- |
 | Aircraft carrier | ac | 5 |
 | Battleship | bs | 4 |
 | Submarine | sm | 3 |
