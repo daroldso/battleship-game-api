@@ -98,7 +98,6 @@ class GameLogic():
             player = '2'
             opponent = '1'
 
-
         is_ship_hit = False
         is_ship_destroyed = False
         ship_being_hit = ''

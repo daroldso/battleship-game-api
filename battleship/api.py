@@ -97,7 +97,7 @@ class BattleshipApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
             if game.game_over:
-                return game.to_form('Game already over!')
+                return game.to_game_over_form('Game already over!')
             else:
                 return game.to_form('Time to make a move!')
         else:
@@ -112,14 +112,14 @@ class BattleshipApi(remote.Service):
         """Makes a move. Returns a game state with message"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game.game_over:
-            return game.to_form('Game already over!')
+            return game.to_game_over_form('Game already over!')
 
         if game.cancelled:
-            return game.to_form('Game already cancelled!')
+            return game.to_game_over_form('Game already cancelled!')
 
         # Check if this move is from the correct player
         if GameLogic.is_correct_player(game, request.is_player1_move) is False:
-            return game.to_form('It is not your turn!')
+            return game.to_game_move_form('It is not your turn!', request.is_player1_move)
 
         player_move, is_ship_hit, ship_being_hit, is_ship_destroyed = GameLogic.make_move(request, game)
 
@@ -177,7 +177,7 @@ class BattleshipApi(remote.Service):
                     winner_name = game.player1.get().name
                 else:
                     winner_name = 'Computer'
-            return game.to_form('Game over! %s wins!' % winner_name)
+            return game.to_game_over_form('Game over! %s wins!' % winner_name)
         else:
             game.current_player = next_player
             game.put()
@@ -186,7 +186,7 @@ class BattleshipApi(remote.Service):
             #     taskqueue.add(
             #         url='/tasks/send_notification_to_opponent',
             #         params={'player_to_move': next_player_name})
-            return game.to_form('%s! %s\'s turn' % (msg, next_player_name))
+            return game.to_game_move_form('%s! %s\'s turn' % (msg, next_player_name), request.is_player1_move)
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
@@ -237,13 +237,13 @@ class BattleshipApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
             if game.game_over:
-                return game.to_form('Game already over!')
+                return game.to_game_over_form('Game already over!')
             elif game.cancelled:
-                return game.to_form('Game already cancelled!')
+                return game.to_game_over_form('Game already cancelled!')
             else:
                 game.cancelled = True
                 game.put()
-                return game.to_form('Game Cancelled!')
+                return game.to_game_over_form('Game Cancelled!')
         else:
             raise endpoints.NotFoundException('Game not found!')
 
