@@ -8,9 +8,43 @@ This is the Project 4 of Full Stack Web Developer Nanodegree by Udacity
  running by visiting the API Explorer - by default localhost:8080/_ah/api/explorer.
 
 ##Game Description
-Battleship is a guessing game based on grids between 2 players. Each game begins with each player having 5 ships in their own arena. Their ships will be placed in the grid either horizontally or vertically. Ships cannot be overlapped. In each move, one of the player will decide a coordinate to hit. It can either hit or miss the ships of the opponents. The ship will be sinked when all the coordinates of the ship was hit. Player who has no ship remaining is lost.
+Battleship is a guessing game based on a 10x10 grids between 2 players. Each game begins with each player having 5 ships in their own arena. They are:
+
+| Ship name | Code | Size |
+| --- | --- |
+| Aircraft carrier | ac | 5 |
+| Battleship | bs | 4 |
+| Submarine | sm | 3 |
+| Destroyer | dt | 3 |
+| Patrol boat | pb | 2 |
+
+You can place the ships in the grid either horizontally or vertically. You will choose a starting position by first choosing the row (A to J) and the column (1 to 10). Ships cannot be overlapped. Ships will be represented by their code in the game board.
+```
+[
+'~', 'pb', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' ,
+'~', 'pb', '~' , '~' , '~' , '~' , '~' , '~' , '~' , 'sm',
+'~', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' , 'sm',
+'~', 'dt', 'dt', 'dt', '~' , '~' , '~' , '~' , '~' , 'sm',
+'~', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' ,
+'~', '~' , '~' , '~' , 'bs', 'bs', 'bs', 'bs', '~' , 'ac',
+'~', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' , 'ac',
+'~', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' , 'ac',
+'~', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' , 'ac',
+'~', '~' , '~' , '~' , '~' , '~' , '~' , '~' , '~' , 'ac'
+]
+```
+Each player will has a primary grid and tracking grid. Primary grid is their actual game board while tracking grid is for marking down where they hit in he opponent's grid. For every hit by the opponent in primary grid, it will be marked 'x'. Every hit player made, it will be marked in player's tracking grid. If it is hit, the code of the ship being hit will be marked on the grid, otherwise 'x' will be marked. 
+In each move, one of the player will decide a coordinate to hit, same as when they choose the starting position of ship. You will know if you hit or miss the ships of the opponents by the message replied by the server.
+```
+player_1 has hit nothing! player_2's turn
+```
+```
+player_1 has hit the battleship of player_2! player_2's turn
+```
+The ship will be sinked when all the coordinates of the ship was hit, and you will know it from the server message as well. Player who has no ship remaining is lost.
 'Moves' are sent to `make_move` endpoint which will reply with the state of the game and who is next to move.
 Score is recorded when the game ends with the ships remaining as the actual score of the player of that game.
+The players are ranked by the sum of ships remaining in all the games they played
 
 ##Files Included
  - api.py: Contains endpoints and game playing logic.
