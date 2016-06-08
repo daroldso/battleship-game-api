@@ -42,21 +42,28 @@ class GameLogic():
         grid = self.create_default_grid()
 
         for shipcode, ship in self.ships.iteritems():
-            start_row = getattr(request, 'player%s_%s_start_row' % (player, ship['name']) )
-            start_col = getattr(request, 'player%s_%s_start_col' % (player, ship['name']) ) - 1
-            is_horizontal = getattr(request, 'player%s_%s_is_horizontal' % (player, ship['name']) )
+            start_row = \
+                getattr(request,
+                        'player%s_%s_start_row' % (player, ship['name']))
+            start_col = \
+                getattr(request,
+                        'player%s_%s_start_col' % (player, ship['name'])) - 1
+            is_horizontal = \
+                getattr(request,
+                        'player%s_%s_is_horizontal' % (player, ship['name']))
             start_row_dict = start_row.to_dict()
             start_row = start_row_dict[str(start_row)]
 
             if start_col < 0 or start_col >= 10:
                 raise endpoints.BadRequestException(
-                    'Player %s %s start_col must be between 1 to 10' % (player, ship['name']) )
+                    'Player %s %s start_col must be between 1 to 10' %
+                    (player, ship['name']))
 
             if is_horizontal and start_col + ship['size'] > 10:
                 raise endpoints.BadRequestException(
                     'The %s of player %s is too long' % (ship['name'], player))
 
-            if is_horizontal == False and start_row + ship['size'] > 10:
+            if is_horizontal is False and start_row + ship['size'] > 10:
                 raise endpoints.BadRequestException(
                     'The %s of player %s is too tall' % (ship['name'], player))
 
@@ -69,7 +76,8 @@ class GameLogic():
                     row = start_row + i
                 if grid[row][col] != '~':
                     raise endpoints.BadRequestException(
-                        'The %s of player %s is overlapping with another ship' % (ship['name'], player))
+                       'The %s of player %s is overlapping with another ship' %
+                       (ship['name'], player))
 
                 grid[row][col] = str(shipcode)
 
@@ -115,28 +123,30 @@ class GameLogic():
             tracking_grid[move_row][move_col] = hit_target
         else:
             tracking_grid[move_row][move_col] = 'x'
-        
+
         target_grid[move_row][move_col] = 'x'
 
-        if is_ship_hit == True:
+        if is_ship_hit is True:
             for shipcode, ship in self.ships.iteritems():
                 if hit_target == shipcode:
                     hit_target_remaining = getattr(game,
-                        'player%s_%s_remaining' % (opponent, ship['name']))
+                                                   'player%s_%s_remaining' %
+                                                   (opponent, ship['name']))
                     if hit_target_remaining == 1:
                         hit_target_remaining = 0
                         setattr(game,
-                                'player%s_%s_remaining' % (opponent, ship['name']),
+                                'player%s_%s_remaining' %
+                                (opponent, ship['name']),
                                 hit_target_remaining)
                         is_ship_destroyed = True
                     else:
                         hit_target_remaining -= 1
                         setattr(game,
-                                'player%s_%s_remaining' % (opponent, ship['name']),
+                                'player%s_%s_remaining' %
+                                (opponent, ship['name']),
                                 hit_target_remaining)
 
         return player_move, is_ship_hit, ship_being_hit, is_ship_destroyed
-
 
     @classmethod
     def is_correct_player(self, game, is_player1_move):
@@ -147,9 +157,9 @@ class GameLogic():
 
     @classmethod
     def set_new_ships_remaining(self,
-                                 game,
-                                 is_ship_destroyed,
-                                 is_player1_move):
+                                game,
+                                is_ship_destroyed,
+                                is_player1_move):
         if is_ship_destroyed:
             if is_player1_move:
                 game.player2_ships_remaining -= 1

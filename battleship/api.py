@@ -119,9 +119,11 @@ class BattleshipApi(remote.Service):
 
         # Check if this move is from the correct player
         if GameLogic.is_correct_player(game, request.is_player1_move) is False:
-            return game.to_game_move_form('It is not your turn!', request.is_player1_move)
+            return game.to_game_move_form('It is not your turn!',
+                                          request.is_player1_move)
 
-        player_move, is_ship_hit, ship_being_hit, is_ship_destroyed = GameLogic.make_move(request, game)
+        player_move, is_ship_hit, ship_being_hit, is_ship_destroyed = \
+            GameLogic.make_move(request, game)
 
         # Decrease the ships remaining if the ship is hit
         GameLogic.set_new_ships_remaining(
@@ -186,7 +188,10 @@ class BattleshipApi(remote.Service):
                 taskqueue.add(
                     url='/tasks/send_notification_to_opponent',
                     params={'player_to_move': next_player_name})
-            return game.to_game_move_form('%s! %s\'s turn' % (msg, next_player_name), request.is_player1_move)
+            return game.to_game_move_form('%s! %s\'s turn' % (
+                                          msg,
+                                          next_player_name
+                                          ), request.is_player1_move)
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
